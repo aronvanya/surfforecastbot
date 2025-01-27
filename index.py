@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
+# Переменные окружения
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 SURFLINE_URL = "https://www.surfline.com/surf-report/my-khe/640a5eaa99dd4458250abcf8"
 
@@ -16,7 +17,10 @@ def webhook():
         text = data["message"].get("text", "")
 
         if text == "/start":
-            send_message(chat_id, "👋 Привет! Я бот прогноза волн для My Khe. Используйте /forecast, чтобы получить прогноз.")
+            send_message(chat_id, (
+                "👋 Привет! Я бот для прогноза волн. 🌊\n\n"
+                "Используйте команду /forecast, чтобы получить текущий прогноз для My Khe."
+            ))
             return jsonify({"message": "Start command processed"}), 200
 
         if text == "/forecast":
@@ -48,11 +52,10 @@ def get_wave_forecast():
         wave_height = soup.find("span", class_="quiver-surf-height").get_text(strip=True)
         wave_condition = soup.find("span", class_="quiver-spot-conditions-summary__text").get_text(strip=True)
 
-        # Формируем текст прогноза
         forecast = f"🌊 *Прогноз волн для My Khe:*\n\n"
         forecast += f"🏄 Высота волн: *{wave_height}*\n"
         forecast += f"🌤 Условия: *{wave_condition}*\n\n"
-        forecast += f"Подробнее на [Surfline]({SURFLINE_URL})"
+        forecast += f"Подробнее: [Surfline]({SURFLINE_URL})"
 
         return forecast
     except Exception as e:
