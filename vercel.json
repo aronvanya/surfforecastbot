@@ -11,5 +11,5 @@
       "dest": "index.py"
     }
   ],
-  "installCommand": "pip install -r requirements.txt && playwright install"
+  "installCommand": "pip install -r requirements.txt && playwright install chromium"
 }
