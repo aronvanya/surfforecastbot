@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 import os
-import requests  # Импортируем requests для работы с HTTP-запросами
 from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
@@ -50,7 +49,11 @@ def get_wave_forecast():
     """Получает прогноз волн с Surfline через Playwright."""
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            # Запускаем браузер Chromium
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-setuid-sandbox"]  # Аргументы для работы на Vercel
+            )
             page = browser.new_page()
             page.goto(SURFLINE_URL)
 
