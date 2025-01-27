@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # Переменные окружения
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-SURFLINE_URL = "https://www.surfline.com/surf-report/my-khe/640a5eaa99dd4458250abcf8"
+WINDY_URL = "https://www.windy.com/-Waves-waves?waves,16.047,108.206,10"
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -47,31 +47,28 @@ def index():
     return "Server is running", 200
 
 def get_wave_forecast():
-    """Получает прогноз волн с Surfline."""
+    """Получает прогноз волн через Windy."""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Connection": "keep-alive"
         }
-        response = requests.get(SURFLINE_URL, headers=headers)
+        response = requests.get(WINDY_URL, headers=headers)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # Парсим данные о волнах
-        wave_height = soup.find("span", class_="quiver-surf-height").get_text(strip=True)
-        wave_condition = soup.find("span", class_="quiver-spot-conditions-summary__text").get_text(strip=True)
+        # Парсим данные о волнах (пример, если данные находятся в определённых тегах)
+        wave_height = soup.find("div", class_="waves-height").get_text(strip=True)
+        wave_condition = soup.find("div", class_="waves-condition").get_text(strip=True)
 
-        return f"🌊 *Прогноз волн для My Khe:*\n\n🏄 Высота волн: *{wave_height}*\n🌤 Условия: *{wave_condition}*\n\nПодробнее: [Surfline]({SURFLINE_URL})"
+        return f"🌊 *Прогноз волн для My Khe:*\n\n🏄 Высота волн: *{wave_height}*\n🌤 Условия: *{wave_condition}*\n\nПодробнее: [Windy]({WINDY_URL})"
 
     except requests.exceptions.RequestException as e:
-        print(f"Ошибка при получении прогноза: {e}")
-        return "❌ Не удалось получить прогноз. Surfline блокирует запрос."
+        print(f"Ошибка при запросе Windy: {e}")
+        return "❌ Не удалось получить прогноз. Попробуйте позже."
     except AttributeError:
-        print("Ошибка: структура сайта Surfline изменилась.")
-        return "❌ Не удалось найти данные на странице Surfline. Возможно, структура сайта изменилась."
+        print("Ошибка: структура страницы Windy изменилась.")
+        return "❌ Не удалось найти данные на странице Windy. Возможно, структура сайта изменилась."
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
         return "❌ Произошла ошибка при обработке данных. Попробуйте позже."
