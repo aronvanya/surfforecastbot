@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import os
+import requests  # Импортируем requests для работы с HTTP-запросами
 from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
