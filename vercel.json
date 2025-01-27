@@ -1,15 +1,8 @@
 {
   "builds": [
     {
-      "src": "index.py",
-      "use": "@vercel/python"
+      "src": "Dockerfile",
+      "use": "@vercel/docker"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "index.py"
-    }
-  ],
-  "installCommand": "pip install -r requirements.txt && playwright install chromium"
+  ]
 }
