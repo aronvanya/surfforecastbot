@@ -1,13 +1,12 @@
 from flask import Flask, request, jsonify
 import os
-import requests
+from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
 
 # Переменные окружения
 TELEGRAM_TOKEN = "7713986785:AAGmmLHzw-deWhWP4WZBEDWfzQpDyl4sBr8"
-WEBHOOK_URL = "https://surfforecastbot.vercel.app/webhook"
-CHAT_ID = 380614300  # Ваш chat_id
+SURFLINE_URL = "https://www.surfline.com/surf-report/my-khe/640a5eaa99dd4458250abcf8"
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -47,12 +46,34 @@ def index():
     return "Server is running", 200
 
 def get_wave_forecast():
-    """Заглушка для функции прогноза волн."""
+    """Получает прогноз волн с Surfline через Playwright."""
     try:
-        # Здесь можно интегрировать API прогноза волн или использовать заранее подготовленные данные
-        return "🌊 *Прогноз волн для My Khe:*\n\n🏄 Высота волн: *1.5 м*\n🌤 Условия: *Хорошие*\n\nПодробнее: [Surfline](https://www.surfline.com/)"
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(SURFLINE_URL)
+
+            # Извлекаем данные с Surfline
+            wave_height = page.locator(".quiver-surf-height").inner_text()
+            wave_period = page.locator(".quiver-surf-period").inner_text()
+            wind_speed = page.locator(".quiver-wind-speed").inner_text()
+            wind_direction = page.locator(".quiver-wind-direction-text").inner_text()
+
+            browser.close()
+
+            # Формируем прогноз
+            forecast = (
+                f"🌊 *Прогноз волн для My Khe:*\n\n"
+                f"🏄 Высота волн: *{wave_height}*\n"
+                f"📏 Интервал между волнами: *{wave_period}*\n"
+                f"🍃 Скорость ветра: *{wind_speed}*\n"
+                f"🧭 Направление ветра: *{wind_direction}*\n\n"
+                f"Подробнее: [Surfline]({SURFLINE_URL})"
+            )
+            return forecast
+
     except Exception as e:
-        print(f"Ошибка при получении прогноза: {e}")
+        print(f"Ошибка при получении прогноза через Playwright: {e}")
         return "❌ Не удалось получить прогноз. Попробуйте позже."
 
 def send_message(chat_id, text, parse_mode=None):
