@@ -1,13 +1,12 @@
 from flask import Flask, request, jsonify
 import os
-import requests
-from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
 
 # Переменные окружения
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-WINDY_URL = "https://www.windy.com/-Waves-waves?waves,16.047,108.206,10"
+SURFLINE_URL = "https://www.surfline.com/surf-report/my-khe/640a5eaa99dd4458250abcf8"
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -47,31 +46,28 @@ def index():
     return "Server is running", 200
 
 def get_wave_forecast():
-    """Получает прогноз волн через Windy."""
+    """Получает прогноз волн с Surfline через Playwright."""
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-        }
-        response = requests.get(WINDY_URL, headers=headers)
-        response.raise_for_status()
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(SURFLINE_URL)
 
-        soup = BeautifulSoup(response.text, "html.parser")
+            # Парсим данные о волнах
+            wave_height = page.locator(".quiver-surf-height").inner_text()
+            wave_condition = page.locator(".quiver-spot-conditions-summary__text").inner_text()
 
-        # Парсим данные о волнах (пример, если данные находятся в определённых тегах)
-        wave_height = soup.find("div", class_="waves-height").get_text(strip=True)
-        wave_condition = soup.find("div", class_="waves-condition").get_text(strip=True)
+            browser.close()
 
-        return f"🌊 *Прогноз волн для My Khe:*\n\n🏄 Высота волн: *{wave_height}*\n🌤 Условия: *{wave_condition}*\n\nПодробнее: [Windy]({WINDY_URL})"
-
-    except requests.exceptions.RequestException as e:
-        print(f"Ошибка при запросе Windy: {e}")
-        return "❌ Не удалось получить прогноз. Попробуйте позже."
-    except AttributeError:
-        print("Ошибка: структура страницы Windy изменилась.")
-        return "❌ Не удалось найти данные на странице Windy. Возможно, структура сайта изменилась."
+            return (
+                f"🌊 *Прогноз волн для My Khe:*\n\n"
+                f"🏄 Высота волн: *{wave_height}*\n"
+                f"🌤 Условия: *{wave_condition}*\n\n"
+                f"Подробнее: [Surfline]({SURFLINE_URL})"
+            )
     except Exception as e:
-        print(f"Неизвестная ошибка: {e}")
-        return "❌ Произошла ошибка при обработке данных. Попробуйте позже."
+        print(f"Ошибка при получении прогноза через Playwright: {e}")
+        return "❌ Не удалось получить прогноз. Попробуйте позже."
 
 def send_message(chat_id, text, parse_mode=None):
     """Отправляет текстовое сообщение в Telegram."""
