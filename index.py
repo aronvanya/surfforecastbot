@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import os
-from playwright.sync_api import sync_playwright
+import requests
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
@@ -46,38 +47,34 @@ def index():
     return "Server is running", 200
 
 def get_wave_forecast():
-    """Получает прогноз волн с Surfline через Playwright."""
+    """Получает прогноз волн с Surfline через BeautifulSoup."""
     try:
-        with sync_playwright() as p:
-            # Запускаем браузер Chromium
-            browser = p.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox"]  # Аргументы для работы на Vercel
-            )
-            page = browser.new_page()
-            page.goto(SURFLINE_URL)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        response = requests.get(SURFLINE_URL, headers=headers)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, "html.parser")
 
-            # Извлекаем данные с Surfline
-            wave_height = page.locator(".quiver-surf-height").inner_text()
-            wave_period = page.locator(".quiver-surf-period").inner_text()
-            wind_speed = page.locator(".quiver-wind-speed").inner_text()
-            wind_direction = page.locator(".quiver-wind-direction-text").inner_text()
+        # Извлекаем данные с сайта
+        wave_height = soup.select_one(".quiver-surf-height").text.strip()
+        wave_period = soup.select_one(".quiver-surf-period").text.strip()
+        wind_speed = soup.select_one(".quiver-wind-speed").text.strip()
+        wind_direction = soup.select_one(".quiver-wind-direction-text").text.strip()
 
-            browser.close()
-
-            # Формируем прогноз
-            forecast = (
-                f"🌊 *Прогноз волн для My Khe:*\n\n"
-                f"🏄 Высота волн: *{wave_height}*\n"
-                f"📏 Интервал между волнами: *{wave_period}*\n"
-                f"🍃 Скорость ветра: *{wind_speed}*\n"
-                f"🧭 Направление ветра: *{wind_direction}*\n\n"
-                f"Подробнее: [Surfline]({SURFLINE_URL})"
-            )
-            return forecast
+        # Формируем прогноз
+        forecast = (
+            f"🌊 *Прогноз волн для My Khe:*\n\n"
+            f"🏄 Высота волн: *{wave_height}*\n"
+            f"📏 Интервал между волнами: *{wave_period}*\n"
+            f"🍃 Скорость ветра: *{wind_speed}*\n"
+            f"🧭 Направление ветра: *{wind_direction}*\n\n"
+            f"Подробнее: [Surfline]({SURFLINE_URL})"
+        )
+        return forecast
 
     except Exception as e:
-        print(f"Ошибка при получении прогноза через Playwright: {e}")
+        print(f"Ошибка при получении прогноза: {e}")
         return "❌ Не удалось получить прогноз. Попробуйте позже."
 
 def send_message(chat_id, text, parse_mode=None):
