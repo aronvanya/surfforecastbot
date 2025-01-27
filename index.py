@@ -14,33 +14,27 @@ def webhook():
     """Обработчик вебхука Telegram."""
     try:
         data = request.get_json()
-        print(f"Получены данные: {data}")  # Лог для отладки
+        print(f"Получены данные: {data}")
 
         if data and "message" in data:
             chat_id = data["message"]["chat"]["id"]
             text = data["message"].get("text", "")
-
-            print(f"Получено сообщение: {text} от {chat_id}")  # Лог текста и ID чата
 
             if text == "/start":
                 send_message(chat_id, (
                     "👋 Привет! Я бот для прогноза волн. 🌊\n\n"
                     "Используйте команду /forecast, чтобы получить текущий прогноз для My Khe."
                 ))
-                print("Сообщение /start обработано успешно.")  # Лог успешной обработки
                 return jsonify({"message": "Start command processed"}), 200
 
             if text == "/forecast":
                 forecast = get_wave_forecast()
                 send_message(chat_id, forecast, parse_mode="Markdown")
-                print("Сообщение /forecast обработано успешно.")  # Лог успешной обработки
                 return jsonify({"message": "Forecast command processed"}), 200
 
             send_message(chat_id, "❌ Неизвестная команда. Попробуйте /start или /forecast.")
-            print(f"Неизвестная команда: {text}")  # Лог для неизвестной команды
             return jsonify({"message": "Unknown command processed"}), 200
 
-        print("Неизвестное сообщение или пустой запрос.")  # Лог для пустых запросов
         return jsonify({"message": "Webhook received!"}), 200
 
     except Exception as e:
@@ -57,6 +51,9 @@ def get_wave_forecast():
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Connection": "keep-alive"
         }
         response = requests.get(SURFLINE_URL, headers=headers)
         response.raise_for_status()
@@ -67,18 +64,13 @@ def get_wave_forecast():
         wave_height = soup.find("span", class_="quiver-surf-height").get_text(strip=True)
         wave_condition = soup.find("span", class_="quiver-spot-conditions-summary__text").get_text(strip=True)
 
-        forecast = f"🌊 *Прогноз волн для My Khe:*\n\n"
-        forecast += f"🏄 Высота волн: *{wave_height}*\n"
-        forecast += f"🌤 Условия: *{wave_condition}*\n\n"
-        forecast += f"Подробнее: [Surfline]({SURFLINE_URL})"
-
-        return forecast
+        return f"🌊 *Прогноз волн для My Khe:*\n\n🏄 Высота волн: *{wave_height}*\n🌤 Условия: *{wave_condition}*\n\nПодробнее: [Surfline]({SURFLINE_URL})"
 
     except requests.exceptions.RequestException as e:
         print(f"Ошибка при получении прогноза: {e}")
-        return "❌ Не удалось получить прогноз из-за ошибки соединения. Попробуйте позже."
+        return "❌ Не удалось получить прогноз. Surfline блокирует запрос."
     except AttributeError:
-        print("Ошибка: не удалось найти данные на странице Surfline.")
+        print("Ошибка: структура сайта Surfline изменилась.")
         return "❌ Не удалось найти данные на странице Surfline. Возможно, структура сайта изменилась."
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
@@ -93,7 +85,7 @@ def send_message(chat_id, text, parse_mode=None):
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json=payload)
         response.raise_for_status()
-        print(f"Сообщение отправлено в чат {chat_id}: {text}")  # Лог успешной отправки
+        print(f"Сообщение отправлено: {text}")
     except Exception as e:
         print(f"Ошибка при отправке сообщения: {e}")
 
