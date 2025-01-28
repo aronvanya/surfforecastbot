@@ -17,19 +17,16 @@ def webhook():
     data = request.get_json()
     print(f"Получены данные: {data}")
 
-    # Проверяем, есть ли сообщение
     if "message" in data:
         message = data["message"]
         chat_id = message["chat"]["id"]
         chat_type = message["chat"]["type"]
 
-        # Добавляем группу в список, если это группа или супергруппа
         if chat_type in ["group", "supergroup"]:
             if chat_id not in active_groups:
                 active_groups.add(chat_id)
                 print(f"Добавлена новая группа: {chat_id}")
 
-        # Ответ на команду /start
         if "text" in message and message["text"] == "/start":
             send_message(chat_id, "👋 Бот готов к работе в этой группе!", parse_mode="Markdown")
             return jsonify({"status": "ok"}), 200
@@ -46,31 +43,18 @@ def send_forecast():
 
         current_time = datetime.utcnow()  # Время в UTC
         current_hour = (current_time.hour + 7) % 24  # UTC+7 (вьетнамское время)
-        current_minute = current_time.minute
+
+        if current_hour not in [8, 12]:
+            print(f"Прогноз в {current_hour}:00 не отправляется.")
+            return jsonify({"message": "No forecast sent at this time"}), 200
 
         for group_id in active_groups:
-            if current_hour == 8 and current_minute == 0:
-                # Утреннее приветствие с прогнозом
-                forecast = get_wave_forecast()
-                text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
-                send_message(group_id, text, parse_mode="Markdown")
-            elif current_hour == 12 and current_minute == 0:
-                # Прогноз для 12:00
-                forecast = get_wave_forecast()
+            forecast = get_wave_forecast()
+            if current_hour == 8:
+                text = f"🌅 *Good Morning Vietnam и команда Without Woman!*\n\n{forecast}"
+            elif current_hour == 12:
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
-                send_message(group_id, text, parse_mode="Markdown")
-            elif current_hour == 15 and current_minute == 0:
-                # Прогноз для 15:00
-                forecast = get_wave_forecast()
-                text = f"🕒 *Актуальный прогноз:*\n\n{forecast}"
-                send_message(group_id, text, parse_mode="Markdown")
-            elif current_hour == 18 and current_minute == 26:
-                # Прогноз для 18:17
-                forecast = get_wave_forecast()
-                text = f"🕕 *Актуальный прогноз:*\n\n{forecast}"
-                send_message(group_id, text, parse_mode="Markdown")
-            else:
-                print(f"Прогноз в {current_hour}:{current_minute:02d} не отправляется.")
+            send_message(group_id, text, parse_mode="Markdown")
 
         return jsonify({"message": "Forecast sent successfully!"}), 200
     except Exception as e:
@@ -89,7 +73,7 @@ def get_wave_forecast():
         params = {
             "lat": 16.0502,
             "lng": 108.2498,
-            "params": "waveHeight,windSpeed,windDirection,wavePeriod,waterTemperature,airTemperature,cloudCover",
+            "params": "waveHeight,windSpeed,wavePeriod,waterTemperature",
             "source": "sg"
         }
         headers = {"Authorization": STORMGLASS_API_KEY}
@@ -104,21 +88,14 @@ def get_wave_forecast():
         wave_height = nearest.get("waveHeight", {}).get("sg", "❌ Нет данных")
         wave_period = nearest.get("wavePeriod", {}).get("sg", "❌ Нет данных")
         wind_speed = nearest.get("windSpeed", {}).get("sg", "❌ Нет данных")
-        wind_direction = nearest.get("windDirection", {}).get("sg", "❌ Нет данных")
         water_temp = nearest.get("waterTemperature", {}).get("sg", "❌ Нет данных")
-        air_temp = nearest.get("airTemperature", {}).get("sg", "❌ Нет данных")
-        cloud_cover = nearest.get("cloudCover", {}).get("sg", "❌ Нет данных")
 
         forecast = (
             f"🌊 *Прогноз волн для My Khe:*\n"
-            f"---------------------------\n"
             f"🏄 Высота волн: *{wave_height} м*\n"
             f"📏 Интервал между волнами: *{wave_period} сек*\n"
             f"🍃 Скорость ветра: *{wind_speed} м/с*\n"
-            f"🧭 Направление ветра: *{wind_direction}°*\n"
             f"🌡 Температура воды: *{water_temp}°C*\n"
-            f"🌤 Температура воздуха: *{air_temp}°C*\n"
-            f"☁️ Облачность: *{cloud_cover}%*\n"
             f"---------------------------\n"
             f"Источник данных: [Stormglass.io](https://stormglass.io)"
         )
