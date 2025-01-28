@@ -19,11 +19,12 @@ def send_forecast():
             forecast = get_wave_forecast()
             text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
             send_message(CHAT_ID, text, parse_mode="Markdown")
-        elif current_hour in [12, 15]:
+        elif current_hour in [12, 15, 18]:
             forecast = get_wave_forecast()
             text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
             send_message(CHAT_ID, text, parse_mode="Markdown")
         else:
+            print(f"Прогноз в {current_hour}:00 не отправляется.")
             return jsonify({"message": "No forecast sent at this time"}), 200
 
         return jsonify({"message": "Forecast sent successfully!"}), 200
@@ -55,23 +56,25 @@ def get_wave_forecast():
             return "❌ Не удалось получить прогноз. Данные недоступны."
 
         nearest = data["hours"][0]
-        wave_height = nearest.get("waveHeight", {}).get("sg", "нет данных")
-        wave_period = nearest.get("wavePeriod", {}).get("sg", "нет данных")
-        wind_speed = nearest.get("windSpeed", {}).get("sg", "нет данных")
-        wind_direction = nearest.get("windDirection", {}).get("sg", "нет данных")
-        water_temp = nearest.get("waterTemperature", {}).get("sg", "нет данных")
-        air_temp = nearest.get("airTemperature", {}).get("sg", "нет данных")
-        cloud_cover = nearest.get("cloudCover", {}).get("sg", "нет данных")
+        wave_height = nearest.get("waveHeight", {}).get("sg", "❌ Нет данных")
+        wave_period = nearest.get("wavePeriod", {}).get("sg", "❌ Нет данных")
+        wind_speed = nearest.get("windSpeed", {}).get("sg", "❌ Нет данных")
+        wind_direction = nearest.get("windDirection", {}).get("sg", "❌ Нет данных")
+        water_temp = nearest.get("waterTemperature", {}).get("sg", "❌ Нет данных")
+        air_temp = nearest.get("airTemperature", {}).get("sg", "❌ Нет данных")
+        cloud_cover = nearest.get("cloudCover", {}).get("sg", "❌ Нет данных")
 
         forecast = (
-            f"🌊 *Прогноз волн для My Khe:*\n\n"
+            f"🌊 *Прогноз волн для My Khe:*\n"
+            f"---------------------------\n"
             f"🏄 Высота волн: *{wave_height} м*\n"
             f"📏 Интервал между волнами: *{wave_period} сек*\n"
             f"🍃 Скорость ветра: *{wind_speed} м/с*\n"
             f"🧭 Направление ветра: *{wind_direction}°*\n"
             f"🌡 Температура воды: *{water_temp}°C*\n"
             f"🌤 Температура воздуха: *{air_temp}°C*\n"
-            f"☁️ Облачность: *{cloud_cover}%*\n\n"
+            f"☁️ Облачность: *{cloud_cover}%*\n"
+            f"---------------------------\n"
             f"Источник данных: [Stormglass.io](https://stormglass.io)"
         )
         return forecast
@@ -88,6 +91,7 @@ def send_message(chat_id, text, parse_mode=None):
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json=payload)
         response.raise_for_status()
+        print(f"Сообщение отправлено: {text}")
     except Exception as e:
         print(f"Ошибка при отправке сообщения: {e}")
 
