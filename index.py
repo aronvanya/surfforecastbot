@@ -7,11 +7,11 @@ app = Flask(__name__)
 # Конфигурация
 TELEGRAM_TOKEN = "7713986785:AAGmmLHzw-deWhWP4WZBEDWfzQpDyl4sBr8"
 STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-acf2-0242ac130003"
-CHAT_ID = -123456789  # ID вашей группы
+CHAT_ID = -123456789  # Замените на ID вашей группы
 
 @app.route('/send_forecast', methods=['POST'])
 def send_forecast():
-    """Отправляет прогноз в Telegram в заданное время."""
+    """Отправляет прогноз в Telegram."""
     try:
         current_hour = (datetime.utcnow().hour + 7) % 24  # UTC +7 (вьетнамское время)
 
