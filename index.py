@@ -4,7 +4,6 @@ import requests
 import threading
 import schedule
 import time
-from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -15,6 +14,7 @@ CHAT_ID = -123456789  # Замените на ID вашей группы
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
+    """Обработчик вебхука Telegram."""
     try:
         data = request.get_json()
         if data and "message" in data:
@@ -44,6 +44,7 @@ def webhook():
 
 @app.route('/')
 def index():
+    """Проверка работы сервера."""
     return "Server is running", 200
 
 def get_wave_forecast():
@@ -101,30 +102,32 @@ def send_message(chat_id, text, parse_mode=None):
     except Exception as e:
         print(f"Ошибка при отправке сообщения: {e}")
 
-def send_morning_forecast():
-    """Отправляет утренний прогноз с приветствием."""
-    forecast = get_wave_forecast()
-    text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
-    send_message(CHAT_ID, text, parse_mode="Markdown")
-
-def send_afternoon_forecast():
-    """Отправляет дневной прогноз."""
-    forecast = get_wave_forecast()
-    text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
-    send_message(CHAT_ID, text, parse_mode="Markdown")
-
-# Планирование задач
 def schedule_jobs():
-    schedule.every().day.at("08:00").do(send_morning_forecast)  # Утренний прогноз
-    schedule.every().day.at("12:00").do(send_afternoon_forecast)  # Дневной прогноз
-    schedule.every().day.at("15:00").do(send_afternoon_forecast)  # Прогноз в 15:00
+    """Планировщик задач."""
+    schedule.every().day.at("08:00").do(lambda: send_morning_forecast())
+    schedule.every().day.at("12:00").do(lambda: send_afternoon_forecast())
+    schedule.every().day.at("15:00").do(lambda: send_afternoon_forecast())
 
     while True:
         schedule.run_pending()
         time.sleep(1)
 
+def send_morning_forecast():
+    """Утренний прогноз с приветствием."""
+    forecast = get_wave_forecast()
+    text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
+    send_message(CHAT_ID, text, parse_mode="Markdown")
+
+def send_afternoon_forecast():
+    """Дневной прогноз."""
+    forecast = get_wave_forecast()
+    text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
+    send_message(CHAT_ID, text, parse_mode="Markdown")
+
 # Запуск планировщика в отдельном потоке
-threading.Thread(target=schedule_jobs, daemon=True).start()
+thread = threading.Thread(target=schedule_jobs)
+thread.daemon = True
+thread.start()
 
 # Указываем handler для Vercel
 handler = app
