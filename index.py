@@ -1,14 +1,12 @@
 from flask import Flask, request, jsonify
 import os
 import requests
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 
 app = Flask(__name__)
 
 # Переменные окружения
 TELEGRAM_TOKEN = "7713986785:AAGmmLHzw-deWhWP4WZBEDWfzQpDyl4sBr8"
-SURFLINE_URL = "https://www.surfline.com/surf-report/my-khe/640a5eaa99dd4458250abcf8"
+STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-acf2-0242ac130003"
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -48,35 +46,41 @@ def index():
     return "Server is running", 200
 
 def get_wave_forecast():
-    """Получает прогноз волн через Selenium."""
+    """Получает прогноз волн с Stormglass API."""
     try:
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
+        api_url = "https://api.stormglass.io/v2/weather/point"
+        params = {
+            "lat": 16.0502,  # Координаты пляжа My Khe
+            "lng": 108.2498,
+            "params": "waveHeight,windSpeed,windDirection,period",  # Запрашиваемые параметры
+        }
+        headers = {
+            "Authorization": STORMGLASS_API_KEY
+        }
 
-        driver = webdriver.Chrome(options=options)
-        driver.get(SURFLINE_URL)
+        response = requests.get(api_url, params=params, headers=headers)
+        response.raise_for_status()
+        data = response.json()
 
-        wave_height = driver.find_element_by_css_selector(".quiver-surf-height").text
-        wave_period = driver.find_element_by_css_selector(".quiver-surf-period").text
-        wind_speed = driver.find_element_by_css_selector(".quiver-wind-speed").text
-        wind_direction = driver.find_element_by_css_selector(".quiver-wind-direction-text").text
-
-        driver.quit()
+        # Извлекаем ближайшие данные
+        nearest = data["hours"][0]
+        wave_height = nearest["waveHeight"]["sg"]
+        wind_speed = nearest["windSpeed"]["sg"]
+        wind_direction = nearest["windDirection"]["sg"]
+        wave_period = nearest["period"]["sg"]
 
         forecast = (
             f"🌊 *Прогноз волн для My Khe:*\n\n"
-            f"🏄 Высота волн: *{wave_height}*\n"
-            f"📏 Интервал между волнами: *{wave_period}*\n"
-            f"🍃 Скорость ветра: *{wind_speed}*\n"
-            f"🧭 Направление ветра: *{wind_direction}*\n\n"
-            f"Подробнее: [Surfline]({SURFLINE_URL})"
+            f"🏄 Высота волн: *{wave_height} м*\n"
+            f"📏 Интервал между волнами: *{wave_period} сек*\n"
+            f"🍃 Скорость ветра: *{wind_speed} м/с*\n"
+            f"🧭 Направление ветра: *{wind_direction}°*\n\n"
+            f"Источник данных: [Stormglass.io](https://stormglass.io)"
         )
         return forecast
 
     except Exception as e:
-        print(f"Ошибка при получении прогноза через Selenium: {e}")
+        print(f"Ошибка при получении прогноза: {e}")
         return "❌ Не удалось получить прогноз. Попробуйте позже."
 
 def send_message(chat_id, text, parse_mode=None):
