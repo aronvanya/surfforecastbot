@@ -1,12 +1,17 @@
-Traceback (most recent call last):
-File "/var/task/vc__handler__python.py", line 218, in <module>
-if not issubclass(base, BaseHTTPRequestHandler):
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: issubclass() arg 1 must be a class
-Python process exited with exit status: 1. The logs above can help with debugging the issue.
-Traceback (most recent call last):
-File "/var/task/vc__handler__python.py", line 218, in <module>
-if not issubclass(base, BaseHTTPRequestHandler):
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: issubclass() arg 1 must be a class
-Python process exited with exit status: 1. The logs above can help with debugging the issue.
+from flask import Flask, request, jsonify
+import requests
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    """Проверка работы сервера."""
+    return "Server is running!", 200
+
+@app.route('/send_forecast', methods=['POST'])
+def send_forecast():
+    """Пример обработчика для теста."""
+    return jsonify({"message": "Forecast route is working!"}), 200
+
+# Указываем обработчик для Vercel
+handler = app
