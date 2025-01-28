@@ -1,46 +1,38 @@
 from flask import Flask, request, jsonify
-import os
 import requests
-import threading
-import schedule
-import time
+from datetime import datetime
 
 app = Flask(__name__)
 
-# Переменные окружения
+# Конфигурация
 TELEGRAM_TOKEN = "7713986785:AAGmmLHzw-deWhWP4WZBEDWfzQpDyl4sBr8"
 STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-acf2-0242ac130003"
 CHAT_ID = -123456789  # Замените на ID вашей группы
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    """Обработчик вебхука Telegram."""
+@app.route('/send_forecast', methods=['POST'])
+def send_forecast():
+    """Отправляет прогноз в заданное время."""
     try:
-        data = request.get_json()
-        if data and "message" in data:
-            chat_id = data["message"]["chat"]["id"]
-            text = data["message"].get("text", "")
+        # Рассчитываем текущее время по UTC+7 (вьетнамское время)
+        current_hour = datetime.utcnow().hour + 7
 
-            if text == "/start":
-                send_message(chat_id, (
-                    "👋 Привет! Я бот для прогноза волн. 🌊\n\n"
-                    "Я автоматически отправляю прогноз в 8:00, 12:00 и 15:00 по вьетнамскому времени.\n\n"
-                    "Вы также можете использовать команду /forecast, чтобы получить текущий прогноз."
-                ))
-                return jsonify({"message": "Start command processed"}), 200
+        # Утреннее приветствие в 8:00
+        if current_hour == 8:
+            forecast = get_wave_forecast()
+            text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
+            send_message(CHAT_ID, text, parse_mode="Markdown")
+        # Прогноз в 12:00 и 15:00
+        elif current_hour in [12, 15]:
+            forecast = get_wave_forecast()
+            text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
+            send_message(CHAT_ID, text, parse_mode="Markdown")
+        else:
+            return jsonify({"message": "No forecast sent at this time"}), 200
 
-            if text == "/forecast":
-                forecast = get_wave_forecast()
-                send_message(chat_id, forecast, parse_mode="Markdown")
-                return jsonify({"message": "Forecast command processed"}), 200
-
-            send_message(chat_id, "❌ Неизвестная команда. Попробуйте /start или /forecast.")
-            return jsonify({"message": "Unknown command processed"}), 200
-
-        return jsonify({"message": "Webhook received!"}), 200
+        return jsonify({"message": "Forecast sent successfully!"}), 200
     except Exception as e:
-        print(f"Ошибка в обработке вебхука: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        print(f"Ошибка при отправке прогноза: {e}")
+        return jsonify({"error": "Failed to send forecast"}), 500
 
 @app.route('/')
 def index():
@@ -101,33 +93,6 @@ def send_message(chat_id, text, parse_mode=None):
         response.raise_for_status()
     except Exception as e:
         print(f"Ошибка при отправке сообщения: {e}")
-
-def schedule_jobs():
-    """Планировщик задач."""
-    schedule.every().day.at("08:00").do(lambda: send_morning_forecast())
-    schedule.every().day.at("12:00").do(lambda: send_afternoon_forecast())
-    schedule.every().day.at("15:00").do(lambda: send_afternoon_forecast())
-
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-
-def send_morning_forecast():
-    """Утренний прогноз с приветствием."""
-    forecast = get_wave_forecast()
-    text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
-    send_message(CHAT_ID, text, parse_mode="Markdown")
-
-def send_afternoon_forecast():
-    """Дневной прогноз."""
-    forecast = get_wave_forecast()
-    text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
-    send_message(CHAT_ID, text, parse_mode="Markdown")
-
-# Запуск планировщика в отдельном потоке
-thread = threading.Thread(target=schedule_jobs)
-thread.daemon = True
-thread.start()
 
 # Указываем handler для Vercel
 handler = app
