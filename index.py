@@ -64,7 +64,7 @@ def send_forecast():
                 forecast = get_wave_forecast()
                 text = f"🕒 *Актуальный прогноз:*\n\n{forecast}"
                 send_message(group_id, text, parse_mode="Markdown")
-            elif current_hour == 18 and current_minute == 23:
+            elif current_hour == 18 and current_minute == 26:
                 # Прогноз для 18:17
                 forecast = get_wave_forecast()
                 text = f"🕕 *Актуальный прогноз:*\n\n{forecast}"
