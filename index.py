@@ -87,5 +87,5 @@ def send_message(chat_id, text, parse_mode=None):
     except Exception as e:
         print(f"Ошибка при отправке сообщения: {e}")
 
-# Эта строка необходима для Vercel
-handler = app
+# Эта строка для Vercel
+app = app
