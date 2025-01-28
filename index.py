@@ -42,21 +42,33 @@ def send_forecast():
             print("Нет активных групп для отправки прогноза.")
             return jsonify({"message": "No active groups to send forecast"}), 200
 
-        current_hour = (datetime.utcnow().hour + 7) % 24  # UTC+7 (вьетнамское время)
+        current_time = datetime.utcnow()  # Время в UTC
+        current_hour = (current_time.hour + 7) % 24  # UTC+7 (вьетнамское время)
+        current_minute = current_time.minute
 
         for group_id in active_groups:
-            if current_hour == 8:
+            if current_hour == 8 and current_minute == 0:
                 # Утреннее приветствие с прогнозом
                 forecast = get_wave_forecast()
                 text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
                 send_message(group_id, text, parse_mode="Markdown")
-            elif current_hour in [12, 15, 18:08]:
-                # Только прогноз
+            elif current_hour == 12 and current_minute == 0:
+                # Прогноз для 12:00
                 forecast = get_wave_forecast()
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
                 send_message(group_id, text, parse_mode="Markdown")
+            elif current_hour == 15 and current_minute == 0:
+                # Прогноз для 15:00
+                forecast = get_wave_forecast()
+                text = f"🕒 *Актуальный прогноз:*\n\n{forecast}"
+                send_message(group_id, text, parse_mode="Markdown")
+            elif current_hour == 18 and current_minute == 13:
+                # Прогноз для 18:13
+                forecast = get_wave_forecast()
+                text = f"🕕 *Актуальный прогноз:*\n\n{forecast}"
+                send_message(group_id, text, parse_mode="Markdown")
             else:
-                print(f"Прогноз в {current_hour}:00 не отправляется.")
+                print(f"Прогноз в {current_hour}:{current_minute:02d} не отправляется.")
 
         return jsonify({"message": "Forecast sent successfully!"}), 200
     except Exception as e:
