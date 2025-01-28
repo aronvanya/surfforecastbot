@@ -14,9 +14,9 @@ def send_forecast():
     """Отправляет прогноз в заданное время."""
     try:
         # Рассчитываем текущее время по UTC+7 (вьетнамское время)
-        current_hour = datetime.utcnow().hour + 7
+        current_hour = (datetime.utcnow().hour + 7) % 24
 
-        # Утреннее приветствие в 8:00
+        # Утренний прогноз в 8:00
         if current_hour == 8:
             forecast = get_wave_forecast()
             text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
@@ -94,5 +94,5 @@ def send_message(chat_id, text, parse_mode=None):
     except Exception as e:
         print(f"Ошибка при отправке сообщения: {e}")
 
-# Указываем handler для Vercel
+# Указываем обработчик для Vercel
 handler = app
