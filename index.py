@@ -1,16 +1,15 @@
 from flask import Flask, request, jsonify
-import requests
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    """Проверка работы сервера."""
+    """Корневой маршрут для проверки."""
     return "Server is running!", 200
 
 @app.route('/send_forecast', methods=['POST'])
 def send_forecast():
-    """Пример обработчика для теста."""
+    """Маршрут для отправки прогноза."""
     return jsonify({"message": "Forecast route is working!"}), 200
 
 # Указываем обработчик для Vercel
