@@ -25,7 +25,9 @@ def webhook():
 
         # Добавляем группу в список, если это группа или супергруппа
         if chat_type in ["group", "supergroup"]:
-            active_groups.add(chat_id)
+            if chat_id not in active_groups:
+                active_groups.add(chat_id)
+                print(f"Добавлена новая группа: {chat_id}")
 
         # Ответ на команду /start
         if "text" in message and message["text"] == "/start":
@@ -62,8 +64,8 @@ def send_forecast():
                 forecast = get_wave_forecast()
                 text = f"🕒 *Актуальный прогноз:*\n\n{forecast}"
                 send_message(group_id, text, parse_mode="Markdown")
-            elif current_hour == 18 and current_minute == 17:
-                # Прогноз для 18:13
+            elif current_hour == 18 and current_minute == 23:
+                # Прогноз для 18:17
                 forecast = get_wave_forecast()
                 text = f"🕕 *Актуальный прогноз:*\n\n{forecast}"
                 send_message(group_id, text, parse_mode="Markdown")
