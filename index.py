@@ -7,21 +7,18 @@ app = Flask(__name__)
 # Конфигурация
 TELEGRAM_TOKEN = "7713986785:AAGmmLHzw-deWhWP4WZBEDWfzQpDyl4sBr8"
 STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-acf2-0242ac130003"
-CHAT_ID = -123456789  # Замените на ID вашей группы
+CHAT_ID = -123456789  # ID группы Telegram
 
 @app.route('/send_forecast', methods=['POST'])
 def send_forecast():
-    """Отправляет прогноз в заданное время."""
+    """Отправляет прогноз в Telegram в заданное время."""
     try:
-        # Рассчитываем текущее время по UTC+7 (вьетнамское время)
-        current_hour = (datetime.utcnow().hour + 7) % 24
+        current_hour = (datetime.utcnow().hour + 7) % 24  # Вьетнамское время
 
-        # Утренний прогноз в 8:00
         if current_hour == 8:
             forecast = get_wave_forecast()
             text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
             send_message(CHAT_ID, text, parse_mode="Markdown")
-        # Прогноз в 12:00 и 15:00
         elif current_hour in [12, 15]:
             forecast = get_wave_forecast()
             text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
@@ -49,9 +46,7 @@ def get_wave_forecast():
             "params": "waveHeight,windSpeed,windDirection,wavePeriod,waterTemperature,airTemperature",
             "source": "sg"
         }
-        headers = {
-            "Authorization": STORMGLASS_API_KEY
-        }
+        headers = {"Authorization": STORMGLASS_API_KEY}
         response = requests.get(api_url, params=params, headers=headers)
         response.raise_for_status()
         data = response.json()
@@ -83,7 +78,7 @@ def get_wave_forecast():
         return "❌ Не удалось получить прогноз. Попробуйте позже."
 
 def send_message(chat_id, text, parse_mode=None):
-    """Отправляет текстовое сообщение в Telegram."""
+    """Отправляет сообщение в Telegram."""
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         payload = {"chat_id": chat_id, "text": text}
