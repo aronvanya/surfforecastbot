@@ -1,10 +1,17 @@
 from flask import Flask, request, jsonify
+import os
 import requests
+import threading
+import schedule
+import time
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
+# Переменные окружения
 TELEGRAM_TOKEN = "7713986785:AAGmmLHzw-deWhWP4WZBEDWfzQpDyl4sBr8"
 STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-acf2-0242ac130003"
+CHAT_ID = -123456789  # Замените на ID вашей группы
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -17,7 +24,8 @@ def webhook():
             if text == "/start":
                 send_message(chat_id, (
                     "👋 Привет! Я бот для прогноза волн. 🌊\n\n"
-                    "Используйте команду /forecast, чтобы получить текущий прогноз для My Khe."
+                    "Я автоматически отправляю прогноз в 8:00, 12:00 и 15:00 по вьетнамскому времени.\n\n"
+                    "Вы также можете использовать команду /forecast, чтобы получить текущий прогноз."
                 ))
                 return jsonify({"message": "Start command processed"}), 200
 
@@ -39,12 +47,13 @@ def index():
     return "Server is running", 200
 
 def get_wave_forecast():
+    """Получает прогноз волн с Stormglass API."""
     try:
         api_url = "https://api.stormglass.io/v2/weather/point"
         params = {
             "lat": 16.0502,
             "lng": 108.2498,
-            "params": "waveHeight,windSpeed,windDirection,wavePeriod",
+            "params": "waveHeight,windSpeed,windDirection,wavePeriod,waterTemperature,airTemperature",
             "source": "sg"
         }
         headers = {
@@ -59,16 +68,20 @@ def get_wave_forecast():
 
         nearest = data["hours"][0]
         wave_height = nearest.get("waveHeight", {}).get("sg", "нет данных")
+        wave_period = nearest.get("wavePeriod", {}).get("sg", "нет данных")
         wind_speed = nearest.get("windSpeed", {}).get("sg", "нет данных")
         wind_direction = nearest.get("windDirection", {}).get("sg", "нет данных")
-        wave_period = nearest.get("wavePeriod", {}).get("sg", "нет данных")
+        water_temp = nearest.get("waterTemperature", {}).get("sg", "нет данных")
+        air_temp = nearest.get("airTemperature", {}).get("sg", "нет данных")
 
         forecast = (
             f"🌊 *Прогноз волн для My Khe:*\n\n"
             f"🏄 Высота волн: *{wave_height} м*\n"
             f"📏 Интервал между волнами: *{wave_period} сек*\n"
             f"🍃 Скорость ветра: *{wind_speed} м/с*\n"
-            f"🧭 Направление ветра: *{wind_direction}°*\n\n"
+            f"🧭 Направление ветра: *{wind_direction}°*\n"
+            f"🌡 Температура воды: *{water_temp}°C*\n"
+            f"🌤 Температура воздуха: *{air_temp}°C*\n\n"
             f"Источник данных: [Stormglass.io](https://stormglass.io)"
         )
         return forecast
@@ -77,6 +90,7 @@ def get_wave_forecast():
         return "❌ Не удалось получить прогноз. Попробуйте позже."
 
 def send_message(chat_id, text, parse_mode=None):
+    """Отправляет текстовое сообщение в Telegram."""
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         payload = {"chat_id": chat_id, "text": text}
@@ -87,5 +101,30 @@ def send_message(chat_id, text, parse_mode=None):
     except Exception as e:
         print(f"Ошибка при отправке сообщения: {e}")
 
-# Эта строка для Vercel
-app = app
+def send_morning_forecast():
+    """Отправляет утренний прогноз с приветствием."""
+    forecast = get_wave_forecast()
+    text = f"🌅 *Good Morning Vietnam и ребята из команды Without Woman!*\n\n{forecast}"
+    send_message(CHAT_ID, text, parse_mode="Markdown")
+
+def send_afternoon_forecast():
+    """Отправляет дневной прогноз."""
+    forecast = get_wave_forecast()
+    text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
+    send_message(CHAT_ID, text, parse_mode="Markdown")
+
+# Планирование задач
+def schedule_jobs():
+    schedule.every().day.at("08:00").do(send_morning_forecast)  # Утренний прогноз
+    schedule.every().day.at("12:00").do(send_afternoon_forecast)  # Дневной прогноз
+    schedule.every().day.at("15:00").do(send_afternoon_forecast)  # Прогноз в 15:00
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+# Запуск планировщика в отдельном потоке
+threading.Thread(target=schedule_jobs, daemon=True).start()
+
+# Указываем handler для Vercel
+handler = app
