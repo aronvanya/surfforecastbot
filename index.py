@@ -45,7 +45,7 @@ def send_forecast():
         current_hour = (current_time.hour + 7) % 24  # UTC+7 (вьетнамское время)
         current_minute = current_time.minute
 
-        if (current_hour, current_minute) not in [(8, 0), (12, 0), (15, 10)]:
+        if (current_hour, current_minute) not in [(8, 0), (12, 0), (15, 16)]:
             print(f"Прогноз в {current_hour}:{current_minute} не отправляется.")
             return jsonify({"message": "No forecast sent at this time"}), 200
 
@@ -55,7 +55,7 @@ def send_forecast():
                 text = f"🌅 *Good Morning Vietnam!*\n\n{forecast}"
             elif current_hour == 12 and current_minute == 0:
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
-            elif current_hour == 15 and current_minute == 10:
+            elif current_hour == 15 and current_minute == 16:
                 text = f"🕒 *Обновленный прогноз:*\n\n{forecast}"
             send_message(group_id, text, parse_mode="Markdown")
 
@@ -70,13 +70,13 @@ def index():
     return "Server is running", 200
 
 def get_wave_forecast():
-    """Получает прогноз волн с Stormglass API."""
+    """Получает прогноз волн и данные о приливе с Stormglass API."""
     try:
         api_url = "https://api.stormglass.io/v2/weather/point"
         params = {
             "lat": 16.0502,
             "lng": 108.2498,
-            "params": "waveHeight,wavePeriod,swellHeight,swellPeriod,windSpeed,waterTemperature,airTemperature,tide,astronomy",
+            "params": "waveHeight,wavePeriod,swellHeight,swellPeriod,windSpeed,waterTemperature,airTemperature,tide",
             "source": "sg"
         }
         headers = {"Authorization": STORMGLASS_API_KEY}
@@ -102,10 +102,8 @@ def get_wave_forecast():
         if tide_data:
             tide_info = f"{tide_data[0]['height']} м ({tide_data[0]['type']})"
 
-        # Данные о восходе / закате через astronomy
-        astronomy_data = nearest.get("astronomy", {})
-        sunrise = astronomy_data.get("sunrise", "❌ Нет данных")
-        sunset = astronomy_data.get("sunset", "❌ Нет данных")
+        # Отдельный запрос для восхода и заката
+        sunrise, sunset = get_sun_times()
 
         forecast = (
             f"🌊 *Прогноз волн для My Khe:*\n"
@@ -126,6 +124,30 @@ def get_wave_forecast():
         print(f"Ошибка при получении прогноза: {e}")
         return "❌ Не удалось получить прогноз. Попробуйте позже."
 
+def get_sun_times():
+    """Получает данные о восходе и закате солнца из API приливов."""
+    try:
+        api_url = "https://api.stormglass.io/v2/tide/extremes/point"
+        params = {
+            "lat": 16.0502,
+            "lng": 108.2498
+        }
+        headers = {"Authorization": STORMGLASS_API_KEY}
+        response = requests.get(api_url, params=params, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        if "data" not in data or not data["data"]:
+            return "❌ Нет данных", "❌ Нет данных"
+
+        sunrise = data["data"][0].get("time", "❌ Нет данных")
+        sunset = data["data"][-1].get("time", "❌ Нет данных")
+
+        return sunrise, sunset
+    except Exception as e:
+        print(f"Ошибка при получении данных о восходе и закате: {e}")
+        return "❌ Нет данных", "❌ Нет данных"
+
 def send_message(chat_id, text, parse_mode=None):
     """Отправляет сообщение в Telegram."""
     try:
@@ -135,7 +157,6 @@ def send_message(chat_id, text, parse_mode=None):
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json=payload)
         response.raise_for_status()
-        print(f"Сообщение отправлено в {chat_id}: {text}")
     except Exception as e:
         print(f"Ошибка при отправке сообщения: {e}")
 
