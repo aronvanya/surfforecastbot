@@ -44,16 +44,18 @@ def send_forecast():
         current_time = datetime.utcnow()  # Время в UTC
         current_hour = (current_time.hour + 7) % 24  # UTC+7 (вьетнамское время)
 
-        if current_hour not in [8, 12]:
+        if current_hour not in [8, 12, 15]:
             print(f"Прогноз в {current_hour}:00 не отправляется.")
             return jsonify({"message": "No forecast sent at this time"}), 200
 
         for group_id in active_groups:
             forecast = get_wave_forecast()
             if current_hour == 8:
-                text = f"🌅 *Good Morning Vietnam и команда Without Woman!*\n\n{forecast}"
+                text = f"🌅 *Good Morning Vietnam!*\n\n{forecast}"
             elif current_hour == 12:
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
+            elif current_hour == 15:
+                text = f"🕒 *Обновленный прогноз:*\n\n{forecast}"
             send_message(group_id, text, parse_mode="Markdown")
 
         return jsonify({"message": "Forecast sent successfully!"}), 200
@@ -73,7 +75,7 @@ def get_wave_forecast():
         params = {
             "lat": 16.0502,
             "lng": 108.2498,
-            "params": "waveHeight,windSpeed,wavePeriod,waterTemperature",
+            "params": "waveHeight,wavePeriod,swellHeight,swellPeriod,windSpeed,waterTemperature,airTemperature,tide,sunrise,sunset",
             "source": "sg"
         }
         headers = {"Authorization": STORMGLASS_API_KEY}
@@ -87,15 +89,33 @@ def get_wave_forecast():
         nearest = data["hours"][0]
         wave_height = nearest.get("waveHeight", {}).get("sg", "❌ Нет данных")
         wave_period = nearest.get("wavePeriod", {}).get("sg", "❌ Нет данных")
+        swell_height = nearest.get("swellHeight", {}).get("sg", "❌ Нет данных")
+        swell_period = nearest.get("swellPeriod", {}).get("sg", "❌ Нет данных")
         wind_speed = nearest.get("windSpeed", {}).get("sg", "❌ Нет данных")
         water_temp = nearest.get("waterTemperature", {}).get("sg", "❌ Нет данных")
+        air_temp = nearest.get("airTemperature", {}).get("sg", "❌ Нет данных")
+
+        # Получаем данные о приливах (Tide)
+        tide_data = nearest.get("tide", {}).get("sg", [])
+        tide_info = "❌ Нет данных"
+        if tide_data:
+            tide_info = f"{tide_data[0]['height']} м ({tide_data[0]['type']})"
+
+        # Восход / закат
+        sunrise = nearest.get("sunrise", {}).get("sg", "❌ Нет данных")
+        sunset = nearest.get("sunset", {}).get("sg", "❌ Нет данных")
 
         forecast = (
             f"🌊 *Прогноз волн для My Khe:*\n"
             f"🏄 Высота волн: *{wave_height} м*\n"
             f"📏 Интервал между волнами: *{wave_period} сек*\n"
+            f"🌊 Высота свелла: *{swell_height} м*\n"
+            f"⏳ Интервал между свеллами: *{swell_period} сек*\n"
             f"🍃 Скорость ветра: *{wind_speed} м/с*\n"
             f"🌡 Температура воды: *{water_temp}°C*\n"
+            f"🌤 Температура воздуха: *{air_temp}°C*\n"
+            f"🌊 Прилив: *{tide_info}*\n"
+            f"🌅 Восход: *{sunrise}* | 🌇 Закат: *{sunset}*\n"
             f"---------------------------\n"
             f"Источник данных: [Stormglass.io](https://stormglass.io)"
         )
