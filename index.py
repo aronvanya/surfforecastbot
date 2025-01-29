@@ -45,7 +45,7 @@ def send_forecast():
         current_hour = (current_time.hour + 7) % 24  # UTC+7 (вьетнамское время)
         current_minute = current_time.minute
 
-        if (current_hour, current_minute) not in [(8, 0), (12, 0), (15, 16)]:
+        if (current_hour, current_minute) not in [(8, 0), (12, 0), (15, 19)]:
             print(f"Прогноз в {current_hour}:{current_minute} не отправляется.")
             return jsonify({"message": "No forecast sent at this time"}), 200
 
@@ -55,7 +55,7 @@ def send_forecast():
                 text = f"🌅 *Good Morning Vietnam!*\n\n{forecast}"
             elif current_hour == 12 and current_minute == 0:
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
-            elif current_hour == 15 and current_minute == 16:
+            elif current_hour == 15 and current_minute == 19:
                 text = f"🕒 *Обновленный прогноз:*\n\n{forecast}"
             send_message(group_id, text, parse_mode="Markdown")
 
