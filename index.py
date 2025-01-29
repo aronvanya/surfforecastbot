@@ -43,18 +43,19 @@ def send_forecast():
 
         current_time = datetime.utcnow()  # Время в UTC
         current_hour = (current_time.hour + 7) % 24  # UTC+7 (вьетнамское время)
+        current_minute = current_time.minute
 
-        if current_hour not in [8, 12, 15]:
-            print(f"Прогноз в {current_hour}:00 не отправляется.")
+        if (current_hour, current_minute) not in [(8, 0), (12, 0), (15, 10)]:
+            print(f"Прогноз в {current_hour}:{current_minute} не отправляется.")
             return jsonify({"message": "No forecast sent at this time"}), 200
 
         for group_id in active_groups:
             forecast = get_wave_forecast()
-            if current_hour == 8:
+            if current_hour == 8 and current_minute == 0:
                 text = f"🌅 *Good Morning Vietnam!*\n\n{forecast}"
-            elif current_hour == 12:
+            elif current_hour == 12 and current_minute == 0:
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
-            elif current_hour == 15:
+            elif current_hour == 15 and current_minute == 10:
                 text = f"🕒 *Обновленный прогноз:*\n\n{forecast}"
             send_message(group_id, text, parse_mode="Markdown")
 
@@ -75,7 +76,7 @@ def get_wave_forecast():
         params = {
             "lat": 16.0502,
             "lng": 108.2498,
-            "params": "waveHeight,wavePeriod,swellHeight,swellPeriod,windSpeed,waterTemperature,airTemperature,tide,sunrise,sunset",
+            "params": "waveHeight,wavePeriod,swellHeight,swellPeriod,windSpeed,waterTemperature,airTemperature,tide,astronomy",
             "source": "sg"
         }
         headers = {"Authorization": STORMGLASS_API_KEY}
@@ -95,15 +96,16 @@ def get_wave_forecast():
         water_temp = nearest.get("waterTemperature", {}).get("sg", "❌ Нет данных")
         air_temp = nearest.get("airTemperature", {}).get("sg", "❌ Нет данных")
 
-        # Получаем данные о приливах (Tide)
+        # Данные о приливах (Tide)
         tide_data = nearest.get("tide", {}).get("sg", [])
         tide_info = "❌ Нет данных"
         if tide_data:
             tide_info = f"{tide_data[0]['height']} м ({tide_data[0]['type']})"
 
-        # Восход / закат
-        sunrise = nearest.get("sunrise", {}).get("sg", "❌ Нет данных")
-        sunset = nearest.get("sunset", {}).get("sg", "❌ Нет данных")
+        # Данные о восходе / закате через astronomy
+        astronomy_data = nearest.get("astronomy", {})
+        sunrise = astronomy_data.get("sunrise", "❌ Нет данных")
+        sunset = astronomy_data.get("sunset", "❌ Нет данных")
 
         forecast = (
             f"🌊 *Прогноз волн для My Khe:*\n"
