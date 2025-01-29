@@ -45,7 +45,7 @@ def send_forecast():
         current_hour = (current_time.hour + 7) % 24  # UTC+7 (вьетнамское время)
         current_minute = current_time.minute
 
-        if (current_hour, current_minute) not in [(8, 0), (12, 0), (15, 36)]:
+        if (current_hour, current_minute) not in [(8, 0), (12, 0), (15, 57)]:
             print(f"Прогноз в {current_hour}:{current_minute} не отправляется.")
             return jsonify({"message": "No forecast sent at this time"}), 200
 
@@ -55,7 +55,7 @@ def send_forecast():
                 text = f"🌅 *Good Morning Vietnam!*\n\n{forecast}"
             elif current_hour == 12 and current_minute == 0:
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
-            elif current_hour == 15 and current_minute == 36:
+            elif current_hour == 15 and current_minute == 57:
                 text = f"🕒 *Обновленный прогноз:*\n\n{forecast}"
             send_message(group_id, text, parse_mode="Markdown")
 
@@ -76,7 +76,7 @@ def get_wave_forecast():
         params = {
             "lat": 16.0502,
             "lng": 108.2498,
-            "params": "waveHeight,wavePeriod,swellHeight,swellPeriod,waveDirection,windSpeed,windDirection,waterTemperature",
+            "params": "waveHeight,wavePeriod,swellHeight,swellPeriod,windSpeed,waterTemperature",
             "source": "sg"
         }
         headers = {"Authorization": STORMGLASS_API_KEY}
@@ -92,13 +92,8 @@ def get_wave_forecast():
         wave_period = nearest.get("wavePeriod", {}).get("sg", "❌ Нет данных")
         swell_height = nearest.get("swellHeight", {}).get("sg", "❌ Нет данных")
         swell_period = nearest.get("swellPeriod", {}).get("sg", "❌ Нет данных")
-        wave_direction = nearest.get("waveDirection", {}).get("sg", "❌ Нет данных")
         wind_speed = nearest.get("windSpeed", {}).get("sg", "❌ Нет данных")
-        wind_direction = nearest.get("windDirection", {}).get("sg", "❌ Нет данных")
         water_temp = nearest.get("waterTemperature", {}).get("sg", "❌ Нет данных")
-
-        # Получаем данные о восходе и фазе луны
-        sunrise, sunset, moon_phase = get_sun_moon_data()
 
         forecast = (
             f"🌊 *Прогноз волн для My Khe:*\n"
@@ -106,12 +101,8 @@ def get_wave_forecast():
             f"📏 Интервал между волнами: *{wave_period} сек*\n"
             f"🌊 Высота свелла: *{swell_height} м*\n"
             f"⏳ Интервал между свеллами: *{swell_period} сек*\n"
-            f"🧭 Направление волн: *{wave_direction}°*\n"
             f"🍃 Скорость ветра: *{wind_speed} м/с*\n"
-            f"🧭 Направление ветра: *{wind_direction}°*\n"
             f"🌡 Температура воды: *{water_temp}°C*\n"
-            f"🌅 Восход: *{sunrise}* | 🌇 Закат: *{sunset}*\n"
-            f"🌙 Фаза Луны: *{moon_phase}*\n"
             f"---------------------------\n"
             f"Источник данных: [Stormglass.io](https://stormglass.io)"
         )
@@ -119,31 +110,6 @@ def get_wave_forecast():
     except Exception as e:
         print(f"Ошибка при получении прогноза: {e}")
         return "❌ Не удалось получить прогноз. Попробуйте позже."
-
-def get_sun_moon_data():
-    """Получает данные о восходе, закате и фазе Луны."""
-    try:
-        api_url = "https://api.stormglass.io/v2/astronomy/point"
-        params = {
-            "lat": 16.0502,
-            "lng": 108.2498
-        }
-        headers = {"Authorization": STORMGLASS_API_KEY}
-        response = requests.get(api_url, params=params, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        if "data" not in data or not data["data"]:
-            return "❌ Нет данных", "❌ Нет данных", "❌ Нет данных"
-
-        sunrise = data["data"][0].get("sunrise", "❌ Нет данных")
-        sunset = data["data"][0].get("sunset", "❌ Нет данных")
-        moon_phase = data["data"][0].get("moonPhase", "❌ Нет данных")
-
-        return sunrise, sunset, moon_phase
-    except Exception as e:
-        print(f"Ошибка при получении данных о солнце и луне: {e}")
-        return "❌ Нет данных", "❌ Нет данных", "❌ Нет данных"
 
 def send_message(chat_id, text, parse_mode=None):
     """Отправляет сообщение в Telegram."""
