@@ -4,75 +4,89 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Конфигурация
+# 🔑 Конфигурация
 TELEGRAM_TOKEN = "7713986785:AAGmmLHzw-deWhWP4WZBEDWfzQpDyl4sBr8"
 STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-acf2-0242ac130003"
 
-# Хранилище активных групп
+# 📌 Хранилище активных групп
 active_groups = set()
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Обрабатывает сообщения из Telegram."""
     data = request.get_json()
-    print(f"Получены данные: {data}")
+    print(f"📩 [LOG] Получены данные: {data}")
 
     if "message" in data:
         message = data["message"]
         chat_id = message["chat"]["id"]
         chat_type = message["chat"]["type"]
 
+        # Если это группа, добавляем её в список активных
         if chat_type in ["group", "supergroup"]:
             if chat_id not in active_groups:
                 active_groups.add(chat_id)
-                print(f"Добавлена новая группа: {chat_id}")
+                print(f"✅ [LOG] Добавлена новая группа: {chat_id}")
 
+        # Обработка команды /start
         if "text" in message and message["text"] == "/start":
             send_message(chat_id, "👋 Бот готов к работе в этой группе!", parse_mode="Markdown")
             return jsonify({"status": "ok"}), 200
 
     return jsonify({"status": "ignored"}), 200
 
+
 @app.route('/send_forecast', methods=['POST'])
 def send_forecast():
     """Отправляет прогноз в группы."""
     try:
+        print(f"📡 [LOG] Запрос на прогноз получен. Активные группы: {active_groups}")
+
         if not active_groups:
-            print("Нет активных групп для отправки прогноза.")
+            print("❌ [LOG] Нет активных групп для отправки прогноза.")
             return jsonify({"message": "No active groups to send forecast"}), 200
 
-        current_time = datetime.utcnow()  # Время в UTC
-        current_hour = (current_time.hour + 7) % 24  # UTC+7 (вьетнамское время)
-        current_minute = current_time.minute
+        # Получаем текущее UTC-время и переводим во вьетнамское
+        current_time = datetime.utcnow()
+        viet_hour = (current_time.hour + 7) % 24
+        viet_minute = current_time.minute
 
-        forecast_times = [(8, 0), (12, 0), (15, 0)]  # Желаемые времена отправки
-        margin = 5  # Допустимый разброс в минутах
+        print(f"⏳ [LOG] Время сейчас во Вьетнаме: {viet_hour}:{viet_minute}")
 
-        should_send = any(abs(current_hour - h) == 0 and abs(current_minute - m) <= margin for h, m in forecast_times)
+        # Запланированные времена отправки с допуском ±5 минут
+        forecast_times = [(8, m) for m in range(0, 6)] + \
+                         [(12, m) for m in range(0, 6)] + \
+                         [(15, m) for m in range(0, 6)]
 
-        if not should_send:
-            print(f"Прогноз в {current_hour}:{current_minute} не отправляется.")
+        if (viet_hour, viet_minute) not in forecast_times:
+            print(f"🚫 [LOG] Сейчас {viet_hour}:{viet_minute}, прогноз не отправляется.")
             return jsonify({"message": "No forecast sent at this time"}), 200
+
+        print(f"✅ [LOG] Отправка прогноза в {viet_hour}:{viet_minute}!")
 
         for group_id in active_groups:
             forecast = get_wave_forecast()
-            if current_hour == 8:
+            if viet_hour == 8:
                 text = f"🌅 *Good Morning Vietnam!*\n\n{forecast}"
-            elif current_hour == 12:
+            elif viet_hour == 12:
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
-            elif current_hour == 15:
+            elif viet_hour == 15:
                 text = f"🕒 *Обновленный прогноз:*\n\n{forecast}"
+
             send_message(group_id, text, parse_mode="Markdown")
 
         return jsonify({"message": "Forecast sent successfully!"}), 200
+
     except Exception as e:
-        print(f"Ошибка при отправке прогноза: {e}")
+        print(f"❌ [LOG] Ошибка при отправке прогноза: {e}")
         return jsonify({"error": "Failed to send forecast"}), 500
+
 
 @app.route('/')
 def index():
     """Проверка работы сервера."""
     return "Server is running", 200
+
 
 def get_wave_forecast():
     """Получает прогноз волн с Stormglass API."""
@@ -113,8 +127,9 @@ def get_wave_forecast():
         )
         return forecast
     except Exception as e:
-        print(f"Ошибка при получении прогноза: {e}")
+        print(f"❌ [LOG] Ошибка при получении прогноза: {e}")
         return "❌ Не удалось получить прогноз. Попробуйте позже."
+
 
 def send_message(chat_id, text, parse_mode=None):
     """Отправляет сообщение в Telegram."""
@@ -125,9 +140,10 @@ def send_message(chat_id, text, parse_mode=None):
             payload["parse_mode"] = parse_mode
         response = requests.post(url, json=payload)
         response.raise_for_status()
-        print(f"Сообщение отправлено в {chat_id}: {text}")
+        print(f"📨 [LOG] Сообщение отправлено в {chat_id}: {text}")
     except Exception as e:
-        print(f"Ошибка при отправке сообщения: {e}")
+        print(f"❌ [LOG] Ошибка при отправке сообщения: {e}")
+
 
 # Указываем обработчик для Vercel
 app = app
