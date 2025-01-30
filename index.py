@@ -45,17 +45,22 @@ def send_forecast():
         current_hour = (current_time.hour + 7) % 24  # UTC+7 (вьетнамское время)
         current_minute = current_time.minute
 
-        if (current_hour, current_minute) not in [(8, 0), (12, 0), (15, 00)]:
+        forecast_times = [(8, 0), (12, 0), (15, 0)]  # Желаемые времена отправки
+        margin = 5  # Допустимый разброс в минутах
+
+        should_send = any(abs(current_hour - h) == 0 and abs(current_minute - m) <= margin for h, m in forecast_times)
+
+        if not should_send:
             print(f"Прогноз в {current_hour}:{current_minute} не отправляется.")
             return jsonify({"message": "No forecast sent at this time"}), 200
 
         for group_id in active_groups:
             forecast = get_wave_forecast()
-            if current_hour == 8 and current_minute == 0:
+            if current_hour == 8:
                 text = f"🌅 *Good Morning Vietnam!*\n\n{forecast}"
-            elif current_hour == 12 and current_minute == 0:
+            elif current_hour == 12:
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
-            elif current_hour == 15 and current_minute == 00:
+            elif current_hour == 15:
                 text = f"🕒 *Обновленный прогноз:*\n\n{forecast}"
             send_message(group_id, text, parse_mode="Markdown")
 
