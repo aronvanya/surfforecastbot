@@ -140,4 +140,4 @@ def get_active_groups():
         return set()
 
 # ✅ Указываем обработчик для Vercel
-handler = app
+app = app
