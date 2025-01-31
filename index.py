@@ -5,7 +5,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 # 🔑 Конфигурация
-TELEGRAM_TOKEN = "7713986785:AAGbL5WZBEDWfzQpDyl4sBr8"
+TELEGRAM_TOKEN = "7713986785:AAGmmLHzw-deWhWP4WZBEDWfzQpDyl4sBr8"
 STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-acf2-0242ac130003"
 
 # 📌 Фиксированный ID группы
