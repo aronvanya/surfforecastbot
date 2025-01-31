@@ -48,7 +48,7 @@ def send_forecast():
         current_minute = datetime.utcnow().minute
 
         # ✅ Промежуток 5 минут (например, 8:00–8:05)
-        if (8, 0) <= (current_hour, current_minute) <= (9, 5):
+        if (9, 0) <= (current_hour, current_minute) <= (9, 5):
             prefix = "🌅 *Good Morning Vietnam!*\n\n"
         elif (12, 0) <= (current_hour, current_minute) <= (12, 5):
             prefix = "🕛 *Актуальный прогноз:*\n\n"
