@@ -11,9 +11,14 @@ STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-ac
 # 📌 Хранилище активных групп (в памяти)
 active_groups = set()
 
+@app.route('/')
+def index():
+    """🔍 Проверка работы сервера."""
+    return "✅ Server is running", 200
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """Обрабатывает сообщения из Telegram."""
+    """📩 Обрабатывает сообщения из Telegram."""
     data = request.get_json()
     print(f"📩 [LOG] Получены данные: {data}")
 
@@ -34,9 +39,8 @@ def webhook():
 
 @app.route('/send_forecast', methods=['POST'])
 def send_forecast():
-    """Отправляет прогноз в группы."""
+    """📡 Отправляет прогноз в группы."""
     try:
-        # Обновляем список групп перед отправкой
         update_active_groups()
 
         if not active_groups:
@@ -72,12 +76,12 @@ def send_forecast():
 
 @app.route('/update_groups', methods=['POST'])
 def update_groups():
-    """Обновляет список активных групп."""
+    """📡 Обновляет список активных групп."""
     update_active_groups()
     return jsonify({"message": "Groups updated"}), 200
 
 def update_active_groups():
-    """Запрашивает список чатов, где бот является участником."""
+    """🔄 Запрашивает список чатов, где бот является участником."""
     global active_groups
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates"
@@ -99,7 +103,7 @@ def update_active_groups():
         print(f"❌ [LOG] Ошибка при обновлении списка групп: {e}")
 
 def get_wave_forecast():
-    """Получает прогноз волн с Stormglass API."""
+    """🌊 Получает прогноз волн с Stormglass API."""
     try:
         api_url = "https://api.stormglass.io/v2/weather/point"
         params = {
@@ -141,7 +145,7 @@ def get_wave_forecast():
         return "❌ Не удалось получить прогноз. Попробуйте позже."
 
 def send_message(chat_id, text, parse_mode=None):
-    """Отправляет сообщение в Telegram."""
+    """📨 Отправляет сообщение в Telegram."""
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         payload = {"chat_id": chat_id, "text": text}
@@ -153,11 +157,5 @@ def send_message(chat_id, text, parse_mode=None):
     except Exception as e:
         print(f"❌ [LOG] Ошибка при отправке сообщения: {e}")
 
-# Указываем обработчик для Vercel
-if __name__ == "__main__":
-    print("🚀 Сервер запущен и слушает запросы...")
-    app.run(debug=True)
-
-# 📌 Указываем обработчик для Vercel
+# ✅ Указываем обработчик для Vercel
 handler = app
-
