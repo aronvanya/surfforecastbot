@@ -9,7 +9,12 @@ TELEGRAM_TOKEN = "7713986785:AAGbL5WZBEDWfzQpDyl4sBr8"
 STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-acf2-0242ac130003"
 
 # 📌 Фиксированный ID группы
-ACTIVE_GROUP_ID = -1002055756304  # Заменен на ID твоей группы
+ACTIVE_GROUP_ID = -1002055756304  # ID твоей группы
+
+@app.route('/')
+def index():
+    """Простой ответ для проверки работы сервера."""
+    return "🤖 Telegram bot is running!", 200
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
