@@ -1,15 +1,21 @@
 from flask import Flask, request, jsonify
 import requests
+import os
 from datetime import datetime
 
 app = Flask(__name__)
 
 # 🔑 Конфигурация
-TELEGRAM_TOKEN = "7713986785:AAGmmLHzw-deWhWP4WZBEDWfzQpDyl4sBr8"
+TELEGRAM_TOKEN = "7713986785:AAGbL5WZBEDWfzQpDyl4sBr8"
 STORMGLASS_API_KEY = "3e99f8b6-dcc3-11ef-acf2-0242ac130003-3e99f9d8-dcc3-11ef-acf2-0242ac130003"
 
-# 📌 Хранилище активных групп
-active_groups = set()
+# 📌 Хранилище активных групп (загружаем из переменной окружения)
+active_groups = set(map(int, os.getenv("ACTIVE_GROUPS", "").split(","))) if os.getenv("ACTIVE_GROUPS") else set()
+
+def save_active_groups():
+    """Сохраняет список активных групп в переменную окружения."""
+    os.environ["ACTIVE_GROUPS"] = ",".join(map(str, active_groups))
+    print(f"💾 [LOG] Группы сохранены: {active_groups}")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -26,6 +32,7 @@ def webhook():
         if chat_type in ["group", "supergroup"]:
             if chat_id not in active_groups:
                 active_groups.add(chat_id)
+                save_active_groups()  # Сохраняем изменения
                 print(f"✅ [LOG] Добавлена новая группа: {chat_id}")
 
         # Обработка команды /start
@@ -54,7 +61,7 @@ def send_forecast():
         print(f"⏳ [LOG] Время сейчас во Вьетнаме: {viet_hour}:{viet_minute}")
 
         # Запланированные времена отправки с допуском ±5 минут
-        forecast_times = [(8, m) for m in range(0, 6)] + \
+        forecast_times = [(10, m) for m in range(0, 6)] + \
                          [(12, m) for m in range(0, 6)] + \
                          [(15, m) for m in range(0, 6)]
 
@@ -66,7 +73,7 @@ def send_forecast():
 
         for group_id in active_groups:
             forecast = get_wave_forecast()
-            if viet_hour == 8:
+            if viet_hour == 10:
                 text = f"🌅 *Good Morning Vietnam!*\n\n{forecast}"
             elif viet_hour == 12:
                 text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
