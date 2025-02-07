@@ -53,8 +53,8 @@ def send_forecast():
         viet_minute = current_time.minute
 
         # Проверяем, что сейчас 10:30 по вьетнамскому времени
-        if viet_hour == 10 and viet_minute == 30:
-            text = f"🌅 *Доброе утро!*\n\n{forecast}"
+        if viet_hour == 9 and viet_minute == 30:
+            text = f"🌅 *Good Morning, Vietnam!*\n\n{forecast}"
         elif viet_hour == 12:
             text = f"🕛 *Актуальный прогноз:*\n\n{forecast}"
         elif viet_hour == 15:
